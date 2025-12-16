@@ -97,29 +97,15 @@ run_phase() {
 
   # ------------------------------------------------------------------
   # TODO: Extract and print phase summary from "$log_file".
-  #
-  # The logger writes a final line of the form:
-  #   SUMMARY <samples> <avg_loss> <avg_yhat>
-  #
-  # 1) Find the last such line in "$log_file" and store it in 'summary'.
-  #    If no such line exists, 'summary' should be empty.
-  #
-  # 2) If 'summary' is non-empty:
-  #      - Parse it into variables: samples, avg_loss, avg_yhat.
-  #        (The first field is the literal word "SUMMARY".)
-  #      - Print:
-  #          [run] Phase '<phase>' summary: samples=<samples> avg_loss=<avg_loss> avg_yhat=<avg_yhat>
-  #
-  #    Otherwise:
-  #      - Print:
-  #          [run] Phase '<phase>' summary: (no SUMMARY line found)
   # ------------------------------------------------------------------
   local summary=""
+  summary=$(grep "^SUMMARY" "$log_file" | tail -n 1)
   # TODO: summary=...
 
   if [[ -n "$summary" ]]; then
     local _tag samples avg_loss avg_yhat
     # TODO: read -r ...
+read -r _tag samples avg_loss avg_yhat <<< "$summary"
 
     echo "[run] Phase '$phase' summary: samples=$samples avg_loss=$avg_loss avg_yhat=$avg_yhat"
   else

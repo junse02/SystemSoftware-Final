@@ -18,22 +18,21 @@ namespace
     void sigchld_handler(int)
     {
         // TODO: mark that at least one child process has exited.
-        // Hint: set the global flag g_child_exited to a non-zero value.
-        //
-        // This flag can be used in the main loop to notice that a SIGCHLD
-        // was delivered and then call wait()/waitpid() to reap children.
+	g_child_exited = 1;
     }
 
     void set_cloexec(int fd)
     {
         // TODO: mark this file descriptor as close-on-exec using fcntl().
-        //
-        // 1. Use fcntl(fd, F_GETFD) to get current flags.
-        // 2. If the call succeeds, OR the result with FD_CLOEXEC.
-        // 3. Use fcntl(fd, F_SETFD, new_flags) to update.
-        //
-        // This prevents child processes (after exec) from inheriting
-        // these pipe descriptors unintentionally.
+	// 1. 현재 플래그 가져오기
+    int flags = fcntl(fd, F_GETFD);
+    
+    // 2. 오류가 없으면 FD_CLOEXEC 플래그 추가
+    if (flags >= 0) {
+        flags |= FD_CLOEXEC;
+        // 3. 새로운 플래그 설정
+        fcntl(fd, F_SETFD, flags);
+    }
     }
 
     int spawn_child(const char *prog,
@@ -42,28 +41,43 @@ namespace
                     int stdout_fd)
     {
         // TODO: fork a child process, hook up its stdin/stdout, and exec 'prog'.
-        //
-        // Required behavior:
-        //   - Call fork().
-        //   - On error (pid < 0), print an error with std::perror("fork")
-        //     and return -1.
-        //
-        //   - In the child (pid == 0):
-        //       * If stdin_fd >= 0 and stdin_fd != STDIN_FILENO,
-        //         dup2(stdin_fd, STDIN_FILENO); on error, perror and _exit(1).
-        //       * If stdout_fd >= 0 and stdout_fd != STDOUT_FILENO,
-        //         dup2(stdout_fd, STDOUT_FILENO); on error, perror and _exit(1).
-        //       * Call execvp(prog, argv).
-        //         On error, print with std::perror("execvp") and _exit(1).
-        //
-        //   - In the parent:
-        //       * Simply return the child's PID (the value from fork()).
-        //
-        // This function does NOT close any file descriptors; the caller
-        // (trainer::run) remains responsible for closing unused pipe ends.
-        return -1; // placeholder return to keep the skeleton compilable
+// 1. 자식 프로세스 생성
+    pid_t pid = fork();
+
+    if (pid < 0) {
+        std::perror("fork");
+        return -1;
     }
 
+    // 2. 자식 프로세스 로직 (pid == 0)
+    if (pid == 0) {
+        // 입력 연결 (stdin_fd가 유효하고 표준 입력이 아닐 때)
+        if (stdin_fd >= 0 && stdin_fd != STDIN_FILENO) {
+            if (dup2(stdin_fd, STDIN_FILENO) == -1) {
+                std::perror("dup2 stdin");
+                _exit(1);
+            }
+        }
+
+        // 출력 연결 (stdout_fd가 유효하고 표준 출력이 아닐 때)
+        if (stdout_fd >= 0 && stdout_fd != STDOUT_FILENO) {
+            if (dup2(stdout_fd, STDOUT_FILENO) == -1) {
+                std::perror("dup2 stdout");
+                _exit(1);
+            }
+        }
+
+        // 프로그램 실행
+        execvp(prog, argv);
+
+        // execvp가 실패하면 여기로 넘어옴
+        std::perror("execvp");
+        _exit(1);
+    }
+
+    // 3. 부모 프로세스 로직 (pid > 0): 자식 PID 반환
+    return pid;
+}
 
 } // namespace
 
