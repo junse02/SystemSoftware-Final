@@ -23,14 +23,11 @@ namespace
 
     void set_cloexec(int fd)
     {
-        // TODO: mark this file descriptor as close-on-exec using fcntl().
-	// 1. 현재 플래그 가져오기
+    // TODO: mark this file descriptor as close-on-exec using fcntl().
     int flags = fcntl(fd, F_GETFD);
     
-    // 2. 오류가 없으면 FD_CLOEXEC 플래그 추가
     if (flags >= 0) {
         flags |= FD_CLOEXEC;
-        // 3. 새로운 플래그 설정
         fcntl(fd, F_SETFD, flags);
     }
     }
@@ -40,8 +37,8 @@ namespace
                     int stdin_fd,
                     int stdout_fd)
     {
-        // TODO: fork a child process, hook up its stdin/stdout, and exec 'prog'.
-// 1. 자식 프로세스 생성
+    // TODO: fork a child process, hook up its stdin/stdout, and exec 'prog'.
+
     pid_t pid = fork();
 
     if (pid < 0) {
@@ -49,9 +46,7 @@ namespace
         return -1;
     }
 
-    // 2. 자식 프로세스 로직 (pid == 0)
     if (pid == 0) {
-        // 입력 연결 (stdin_fd가 유효하고 표준 입력이 아닐 때)
         if (stdin_fd >= 0 && stdin_fd != STDIN_FILENO) {
             if (dup2(stdin_fd, STDIN_FILENO) == -1) {
                 std::perror("dup2 stdin");
@@ -59,7 +54,6 @@ namespace
             }
         }
 
-        // 출력 연결 (stdout_fd가 유효하고 표준 출력이 아닐 때)
         if (stdout_fd >= 0 && stdout_fd != STDOUT_FILENO) {
             if (dup2(stdout_fd, STDOUT_FILENO) == -1) {
                 std::perror("dup2 stdout");
@@ -67,15 +61,12 @@ namespace
             }
         }
 
-        // 프로그램 실행
         execvp(prog, argv);
-
-        // execvp가 실패하면 여기로 넘어옴
+		
         std::perror("execvp");
         _exit(1);
     }
 
-    // 3. 부모 프로세스 로직 (pid > 0): 자식 PID 반환
     return pid;
 }
 
